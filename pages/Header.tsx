@@ -48,18 +48,6 @@ const Header = ({ user, onNavigate, onLogout }: HeaderProps) => {
                 className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
               />
             </div>
-            <div className="flex items-center space-x-3 mt-2">
-              <select className="text-sm text-gray-600 bg-gray-100 border-transparent rounded-md focus:ring-0 focus:border-gray-400">
-                <option>Room Type</option>
-                <option>Single</option>
-                <option>Double</option>
-              </select>
-              <select className="text-sm text-gray-600 bg-gray-100 border-transparent rounded-md focus:ring-0 focus:border-gray-400">
-                <option>Building</option>
-                <option>North Campus</option>
-                <option>South Campus</option>
-              </select>
-            </div>
           </div>
 
           {/* Right Actions (with Auth Logic) */}
