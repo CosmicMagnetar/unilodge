@@ -12,6 +12,11 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     ...options.headers,
   };
 
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: options.method || 'GET',
     headers,

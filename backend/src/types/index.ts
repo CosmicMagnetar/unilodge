@@ -50,8 +50,10 @@ export interface Review {
   user?: User;
 }
 
-export interface AuthRequest extends Express.Request {
-  body: { name: any; email: any; password: any; };
+import { Request } from 'express';
+
+export interface AuthRequest extends Request {
+  body: any;
   user?: User;
   cookies: any;
 }

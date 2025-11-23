@@ -14,8 +14,13 @@ export interface JWTPayload {
 
 export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const accessToken = req.cookies?.accessToken;
-    
+    let accessToken = req.cookies?.accessToken;
+
+    // Fallback to Authorization header
+    if (!accessToken && req.headers.authorization?.startsWith('Bearer ')) {
+      accessToken = req.headers.authorization.split(' ')[1];
+    }
+
     if (!accessToken) {
       return res.status(401).json({ error: 'No token provided' });
     }
@@ -23,7 +28,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
     try {
       const decoded = jwt.verify(accessToken, JWT_SECRET) as JWTPayload;
       const user = await User.findById(decoded.userId).select('-password');
-      
+
       if (!user) {
         return res.status(401).json({ error: 'User not found' });
       }
@@ -36,7 +41,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
         password: undefined,
         createdAt: user.createdAt.toString(),
       };
-      
+
       next();
     } catch (error) {
       // Access token expired, try refresh token
@@ -48,18 +53,18 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
       try {
         const decoded = jwt.verify(refreshToken, REFRESH_SECRET) as JWTPayload;
         const user = await User.findById(decoded.userId).select('-password');
-        
+
         if (!user) {
           return res.status(401).json({ error: 'User not found' });
         }
-        
+
         // Generate new access token
         const newAccessToken = jwt.sign(
           { userId: user._id, email: user.email, role: user.role },
           JWT_SECRET,
           { expiresIn: '15m' }
         );
-        
+
         // Set new access token in cookie
         res.cookie('accessToken', newAccessToken, {
           httpOnly: true,
@@ -67,7 +72,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
           sameSite: 'strict',
           maxAge: 15 * 60 * 1000 // 15 minutes
         });
-        
+
         req.user = {
           id: user._id.toString(),
           name: user.name,
@@ -76,7 +81,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
           password: undefined,
           createdAt: user.createdAt.toString(),
         };
-        
+
         next();
       } catch (refreshError) {
         console.error('Refresh token error:', refreshError);
