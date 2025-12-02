@@ -5,7 +5,7 @@ const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 // Base URL for OpenRouter
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-const DEFAULT_MODEL = "openrouter/sherlock-think-alpha"; // You can change model here
+const DEFAULT_MODEL = "arcee-ai/trinity-mini:free";
 
 const generationConfig = {
   temperature: 0.7,
@@ -20,11 +20,16 @@ async function openRouterRequest(body: any) {
     headers: {
       "Authorization": `Bearer ${API_KEY}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": window.location.origin, // Required by OpenRouter
+      "X-Title": "UniLodge", // Optional
     },
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please check your OpenRouter credits or try again later.");
+    }
     throw new Error(`OpenRouter API error: ${response.status}`);
   }
 
@@ -116,9 +121,6 @@ export const createAiChat = (systemInstruction: string) => {
   ];
 
   return {
-    /**
-     * Non-streaming message
-     */
     sendMessage: async (msg: string) => {
       history.push({ role: "user", content: msg });
 
@@ -140,9 +142,6 @@ export const createAiChat = (systemInstruction: string) => {
       };
     },
 
-    /**
-     * Streaming messages
-     */
     sendMessageStream: async (msg: string) => {
       history.push({ role: "user", content: msg });
 
@@ -178,7 +177,7 @@ export const createAiChat = (systemInstruction: string) => {
               const json = JSON.parse(data);
               const text = json.choices?.[0]?.delta?.content;
               if (text) yield { text: () => text };
-            } catch {}
+            } catch { }
           }
         }
       }

@@ -7,7 +7,7 @@ import { AuthRequest } from '../types';
 export const getBookings = async (req: AuthRequest, res: Response) => {
   try {
     const query: any = {};
-    
+
     // If not admin, only show user's bookings
     if (req.user?.role !== 'ADMIN') {
       query.userId = req.user?.id;
@@ -18,16 +18,25 @@ export const getBookings = async (req: AuthRequest, res: Response) => {
       .populate('userId', 'name email')
       .sort({ createdAt: -1 });
 
-    res.json(bookings.map(b => ({
+    // Filter out bookings where room or user is missing (deleted)
+    const validBookings = bookings.filter(b => b.roomId && b.userId);
+
+    res.json(validBookings.map(b => ({
       id: b._id.toString(),
-      roomId: b.roomId._id.toString(),
-      userId: b.userId._id.toString(),
+      roomId: (b.roomId as any)._id.toString(),
+      userId: (b.userId as any)._id.toString(),
       checkInDate: b.checkInDate,
       checkOutDate: b.checkOutDate,
       status: b.status,
       totalPrice: b.totalPrice,
       createdAt: b.createdAt,
       room: b.roomId,
+      paymentStatus: b.paymentStatus || 'unpaid',
+      paymentDate: b.paymentDate,
+      paymentMethod: b.paymentMethod,
+      transactionId: b.transactionId,
+      checkInCompleted: b.checkInCompleted || false,
+      checkOutCompleted: b.checkOutCompleted || false,
       user: req.user?.role === 'ADMIN' ? {
         id: (b.userId as any)._id.toString(),
         name: (b.userId as any).name,
@@ -98,7 +107,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
     // Check for date conflicts
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
-    
+
     if (checkIn >= checkOut) {
       return res.status(400).json({ error: 'Check-out date must be after check-in date' });
     }
@@ -142,7 +151,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
 
     await newBooking.save();
     await newBooking.populate('roomId');
-    
+
     res.status(201).json({
       id: newBooking._id.toString(),
       roomId: newBooking.roomId._id.toString(),
@@ -173,7 +182,7 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' });
     }
-    
+
     // Only admin can update status, or users can cancel their own bookings
     if (req.user?.role !== 'ADMIN' && (status !== 'Cancelled' || booking.userId.toString() !== req.user?.id)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -181,9 +190,9 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
 
     booking.status = status as any;
     await booking.save();
-    
+
     await booking.populate('roomId');
-    
+
     res.json({
       id: booking._id.toString(),
       roomId: booking.roomId._id.toString(),
@@ -198,5 +207,140 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Update booking error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Process payment (Mock)
+export const processPayment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { paymentMethod } = req.body;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    // Check authorization
+    if (booking.userId.toString() !== req.user?.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (booking.status !== 'Confirmed') {
+      return res.status(400).json({ error: 'Only confirmed bookings can be paid' });
+    }
+
+    if (booking.paymentStatus === 'paid') {
+      return res.status(400).json({ error: 'Booking is already paid' });
+    }
+
+    // Mock payment processing
+    booking.paymentStatus = 'paid';
+    booking.paymentDate = new Date();
+    booking.paymentMethod = paymentMethod || 'credit_card';
+    booking.transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    await booking.save();
+    await booking.populate('roomId');
+
+    res.json({
+      message: 'Payment processed successfully',
+      booking: {
+        id: booking._id.toString(),
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        paymentDate: booking.paymentDate,
+        paymentMethod: booking.paymentMethod,
+        transactionId: booking.transactionId,
+        totalPrice: booking.totalPrice,
+      }
+    });
+  } catch (error) {
+    console.error('Process payment error:', error);
+    res.status(500).json({ error: 'Payment processing failed' });
+  }
+};
+
+// Complete check-in
+export const completeCheckIn = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    // Check authorization (user or admin/warden)
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'WARDEN' && booking.userId.toString() !== req.user?.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (booking.paymentStatus !== 'paid') {
+      return res.status(400).json({ error: 'Payment required before check-in' });
+    }
+
+    if (booking.checkInCompleted) {
+      return res.status(400).json({ error: 'Already checked in' });
+    }
+
+    booking.checkInCompleted = true;
+    booking.checkInTime = new Date();
+    await booking.save();
+
+    res.json({
+      message: 'Check-in completed',
+      booking: {
+        id: booking._id.toString(),
+        checkInCompleted: booking.checkInCompleted,
+        checkInTime: booking.checkInTime,
+      }
+    });
+  } catch (error) {
+    console.error('Check-in error:', error);
+    res.status(500).json({ error: 'Check-in failed' });
+  }
+};
+
+// Complete check-out
+export const completeCheckOut = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    // Check authorization (user or admin/warden)
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'WARDEN' && booking.userId.toString() !== req.user?.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!booking.checkInCompleted) {
+      return res.status(400).json({ error: 'Must check in before check out' });
+    }
+
+    if (booking.checkOutCompleted) {
+      return res.status(400).json({ error: 'Already checked out' });
+    }
+
+    booking.checkOutCompleted = true;
+    booking.checkOutTime = new Date();
+    booking.status = 'Completed';
+    await booking.save();
+
+    res.json({
+      message: 'Check-out completed',
+      booking: {
+        id: booking._id.toString(),
+        checkOutCompleted: booking.checkOutCompleted,
+        checkOutTime: booking.checkOutTime,
+        status: booking.status,
+      }
+    });
+  } catch (error) {
+    console.error('Check-out error:', error);
+    res.status(500).json({ error: 'Check-out failed' });
   }
 };

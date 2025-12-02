@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
 import Room from '../models/Room';
+import { createNotification } from './notificationController';
 
 export const getRooms = async (req: Request, res: Response) => {
   try {
     const { type, minPrice, maxPrice, available } = req.query;
-    
+
     const query: any = {};
-    
+
     if (type) {
       query.type = type;
     }
@@ -39,14 +40,14 @@ export const getRoom = async (req: Request, res: Response) => {
     // Get reviews for this room
     const Review = (await import('../models/Review')).default;
     const reviews = await Review.find({ roomId: id }).populate('userId', 'name');
-    
+
     const avgRating = reviews.length > 0
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : room.rating;
 
-    res.json({ 
-      ...room.toObject(), 
-      rating: avgRating, 
+    res.json({
+      ...room.toObject(),
+      rating: avgRating,
       reviews: reviews.map(r => ({
         id: r._id.toString(),
         rating: r.rating,
@@ -85,6 +86,7 @@ export const createRoom = async (req: Request, res: Response) => {
       imageUrl: imageUrl || 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=800',
       rating: 0,
       isAvailable: true,
+      approvalStatus: 'pending',
     });
 
     await newRoom.save();
@@ -133,6 +135,81 @@ export const deleteRoom = async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (error) {
     console.error('Delete room error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const approveRoom = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    const room = await Room.findByIdAndUpdate(
+      id,
+      {
+        approvalStatus: 'approved',
+        wardenId: userId
+      },
+      { new: true }
+    );
+
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    res.json({ message: 'Room approved successfully', room });
+  } catch (error) {
+    console.error('Approve room error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const rejectRoom = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    const room = await Room.findById(id).populate('wardenId');
+
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    const roomTitle = `Room ${room.roomNumber}`;
+    const wardenId = room.wardenId;
+
+    // Create notification for the warden
+    if (wardenId) {
+      await createNotification(
+        wardenId,
+        'rejection',
+        'Room Listing Not Approved',
+        `Your room listing "${roomTitle}" was not approved. Please review our listing guidelines and try again, or contact support for more information.`,
+        id,
+        'room',
+        7 // Expires in 7 days
+      );
+    }
+
+    // Delete the room from database
+    await Room.findByIdAndDelete(id);
+
+    res.json({
+      message: 'Room rejected and notification sent to warden',
+      deleted: true
+    });
+  } catch (error) {
+    console.error('Reject room error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getPendingRooms = async (req: Request, res: Response) => {
+  try {
+    const rooms = await Room.find({ approvalStatus: 'pending' }).sort({ createdAt: -1 });
+    res.json(rooms);
+  } catch (error) {
+    console.error('Get pending rooms error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

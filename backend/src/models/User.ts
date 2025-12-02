@@ -5,7 +5,9 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  role: 'ADMIN' | 'GUEST';
+  role: 'ADMIN' | 'WARDEN' | 'GUEST';
+  building?: string;
+  organization?: string;
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -30,8 +32,16 @@ const UserSchema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ['ADMIN', 'GUEST'],
+    enum: ['ADMIN', 'WARDEN', 'GUEST'],
     default: 'GUEST',
+  },
+  building: {
+    type: String,
+    required: false,
+  },
+  organization: {
+    type: String,
+    required: false,
   },
   createdAt: {
     type: Date,
@@ -42,10 +52,21 @@ const UserSchema = new Schema<IUser>({
 // Hash password before saving
 UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+
+    // Auto-populate organization from email domain if not set
+    if (!this.organization && this.email) {
+      const domain = this.email.split('@')[1];
+      if (domain) {
+        // Extract organization name from domain (e.g., "stanford.edu" -> "Stanford")
+        const orgName = domain.split('.')[0];
+        this.organization = orgName.charAt(0).toUpperCase() + orgName.slice(1);
+      }
+    }
+
     next();
   } catch (error: any) {
     next(error);

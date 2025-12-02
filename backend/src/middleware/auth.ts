@@ -103,6 +103,27 @@ export function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
   next();
 }
 
+export function wardenOnly(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.user?.role !== 'WARDEN') {
+    return res.status(403).json({ error: 'Warden access required' });
+  }
+  next();
+}
+
+export function guestOnly(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.user?.role !== 'GUEST') {
+    return res.status(403).json({ error: 'Guest access required' });
+  }
+  next();
+}
+
+export function adminOrWardenOnly(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.user?.role !== 'ADMIN' && req.user?.role !== 'WARDEN') {
+    return res.status(403).json({ error: 'Admin or Warden access required' });
+  }
+  next();
+}
+
 export function generateTokens(userId: string, email: string, role: string) {
   const accessToken = jwt.sign(
     { userId, email, role },

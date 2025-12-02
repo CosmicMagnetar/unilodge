@@ -14,11 +14,11 @@ export const register = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Don't hash password manually - the User model's pre-save hook will do it
     const user = new User({
       name,
       email,
-      password: hashedPassword,
+      password, // Pass plain password, model will hash it
       role: 'GUEST',
     });
 
@@ -47,6 +47,7 @@ export const register = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({
       message: 'User registered successfully',
+      token: accessToken,
       user: {
         id: user._id,
         name: user.name,
@@ -70,6 +71,7 @@ export const login = async (req: AuthRequest, res: Response) => {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
+
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -97,6 +99,7 @@ export const login = async (req: AuthRequest, res: Response) => {
 
     res.json({
       message: 'Login successful',
+      token: accessToken,
       user: {
         id: user._id,
         name: user.name,
@@ -144,7 +147,7 @@ export const refreshTokenEndpoint = async (req: AuthRequest, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ message: 'Token refreshed' });
+    res.json({ message: 'Token refreshed', token: accessToken });
   } catch (error) {
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
@@ -164,14 +167,35 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     }
 
     res.json({
-      id: user._id,
+      id: user._id.toString(),
       name: user.name,
       email: user.email,
       role: user.role,
+      building: user.building,
+      organization: user.organization,
       createdAt: user.createdAt,
     });
   } catch (error) {
     console.error('Get me error:', error);
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+};
+
+export const getWardens = async (req: AuthRequest, res: Response) => {
+  try {
+    const wardens = await User.find({ role: 'WARDEN' }).select('-password');
+
+    res.json(wardens.map(warden => ({
+      id: warden._id.toString(),
+      name: warden.name,
+      email: warden.email,
+      role: warden.role,
+      building: warden.building,
+      organization: warden.organization,
+      createdAt: warden.createdAt,
+    })));
+  } catch (error) {
+    console.error('Get wardens error:', error);
+    res.status(500).json({ error: 'Failed to fetch wardens' });
   }
 };

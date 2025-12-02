@@ -8,33 +8,41 @@ import { GuestDashboard } from "./pages/GuestDashboard.tsx";
 import {AdminDashboard} from "./pages/AdminDashboard.tsx";
 import { MyBookingsPage } from "./pages/MyBookingsPage.tsx";
 import { WardenDashboard } from "./pages/WardenDashboard.tsx";
+import { LoadingPage } from "./components/common/LoadingPage.tsx";
+import { ToastProvider, useToast } from "./components/ToastProvider.tsx";
 
-export default function App() {
+const AppContent = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [page, setPage] = useState("home");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const { success, error, info } = useToast();
 
   // Load user from token on mount
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      api
-        .getMe()
-        .then((user) => {
+    const initializeApp = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const user = await api.getMe();
           setCurrentUser(user);
           // set page based on role (handle WARDEN in caps)
           if (user.role === Role.ADMIN) setPage("admin-dashboard");
           else if (user.role === Role.WARDEN) setPage("warden-dashboard");
           else setPage("guest-dashboard");
-        })
-        .catch(() => {
+        } catch {
           localStorage.removeItem("token");
-        });
-    }
-    loadRooms();
+        }
+      }
+      await loadRooms();
+      // Give a minimum display time for loading page
+      setTimeout(() => setInitialLoading(false), 1500);
+    };
+    
+    initializeApp();
   }, []);
 
   // Load bookings when user is logged in
@@ -62,8 +70,9 @@ export default function App() {
           capacity: r.capacity,
         }))
       );
-    } catch (error) {
-      console.error("Failed to load rooms:", error);
+    } catch (err: any) {
+      console.error("Failed to load rooms:", err);
+      error("Failed to load rooms");
     } finally {
       setLoading(false);
     }
@@ -85,21 +94,27 @@ export default function App() {
           room: b.room || b.roomId,
         }))
       );
-    } catch (error) {
-      console.error("Failed to load bookings:", error);
+    } catch (err: any) {
+      console.error("Failed to load bookings:", err);
+      error("Failed to load bookings");
     } finally {
       setBookingLoading(false);
     }
   };
 
   const handleLogin = async (email: string, password: string) => {
-    const response = await api.login(email, password);
-    localStorage.setItem("token", response.token);
-    setCurrentUser(response.user);
-    // set page based on role (support WARDEN)
-    if (response.user.role === Role.ADMIN) setPage("admin-dashboard");
-    else if (response.user.role === Role.WARDEN) setPage("warden-dashboard");
-    else setPage("guest-dashboard");
+    try {
+      const response = await api.login(email, password);
+      localStorage.setItem("token", response.token);
+      setCurrentUser(response.user);
+      success(`Welcome back, ${response.user.name}!`);
+      // set page based on role (support WARDEN)
+      if (response.user.role === Role.ADMIN) setPage("admin-dashboard");
+      else if (response.user.role === Role.WARDEN) setPage("warden-dashboard");
+      else setPage("guest-dashboard");
+    } catch (err: any) {
+      throw err; // Let LoginPage handle the error display
+    }
   };
 
   const handleSignup = async (
@@ -107,16 +122,22 @@ export default function App() {
     email: string,
     password: string
   ) => {
-    const response = await api.signup(name, email, password);
-    localStorage.setItem("token", response.token);
-    setCurrentUser(response.user);
-    setPage("guest-dashboard");
+    try {
+      const response = await api.signup(name, email, password);
+      localStorage.setItem("token", response.token);
+      setCurrentUser(response.user);
+      success("Account created successfully!");
+      setPage("guest-dashboard");
+    } catch (err: any) {
+      throw err; // Let LoginPage handle the error display
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     setCurrentUser(null);
     setPage("home");
+    info("You have been logged out");
   };
 
   const handleNavigate = (newPage: string) => {
@@ -127,10 +148,11 @@ export default function App() {
   const handleBook = async (roomId: string) => {
     if (!currentUser) {
       setPage("login");
+      info("Please login to book a room");
       return;
     }
     if (currentUser.role === Role.ADMIN) {
-      alert("Admins cannot book rooms.");
+      error("Admins cannot book rooms.");
       return;
     }
 
@@ -141,11 +163,11 @@ export default function App() {
 
     try {
       await api.createBooking(roomId, checkIn, checkOut);
-      alert("Booking created successfully!");
+      success("Booking created successfully!");
       loadBookings();
       loadRooms();
-    } catch (error: any) {
-      alert(error.message || "Failed to create booking");
+    } catch (err: any) {
+      error(err.message || "Failed to create booking");
     }
   };
 
@@ -153,10 +175,31 @@ export default function App() {
     if (!confirm("Are you sure you want to cancel this booking?")) return;
     try {
       await api.updateBookingStatus(bookingId, "Cancelled");
+      success("Booking cancelled successfully");
       loadBookings();
       loadRooms();
-    } catch (error: any) {
-      alert(error.message || "Failed to cancel booking");
+    } catch (err: any) {
+      error(err.message || "Failed to cancel booking");
+    }
+  };
+
+  const handleCheckIn = async (bookingId: string) => {
+    try {
+      await api.checkIn(bookingId);
+      success("Guest checked in successfully");
+      loadBookings();
+    } catch (err: any) {
+      error(err.message || "Check-in failed");
+    }
+  };
+
+  const handleCheckOut = async (bookingId: string) => {
+    try {
+      await api.checkOut(bookingId);
+      success("Guest checked out successfully");
+      loadBookings();
+    } catch (err: any) {
+      error(err.message || "Check-out failed");
     }
   };
 
@@ -191,6 +234,8 @@ export default function App() {
               user={currentUser}
               rooms={rooms}
               bookings={bookings}
+              onCheckIn={handleCheckIn}
+              onCheckOut={handleCheckOut}
             />
           )
         );
@@ -201,9 +246,14 @@ export default function App() {
       case "home":
       default:
         // HomePage no longer needs props passed to it
-        return <HomePage />;
+        return <HomePage onNavigate={handleNavigate} />;
     }
   };
+
+  // Show loading page during initial load
+  if (initialLoading) {
+    return <LoadingPage />;
+  }
 
   return (
     // The old code used bg-light-bg. The new homepage uses bg-gray-50.
@@ -227,5 +277,13 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+};
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }

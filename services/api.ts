@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta as any)?.env?.VITE_API_URL || 'https://unilodge-0own.onrender.com/api';
+const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:3001/api';
 
 interface RequestOptions {
   method?: string;
@@ -35,22 +35,22 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 export const api = {
   // Auth
   login: (email: string, password: string) =>
-    request<{ message: string; user: any }>('/auth/login', {
+    request<{ message: string; token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: { email, password },
     }),
-  
+
   signup: (name: string, email: string, password: string) =>
-    request<{
-        token(arg0: string, token: any): unknown; message: string; user: any 
-}>('/auth/register', {
+    request<{ message: string; token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: { name, email, password },
     }),
-  
+
   getMe: () => request<any>('/auth/me'),
-  
-  logout: () => 
+
+  getWardens: () => request<any[]>('/auth/wardens'),
+
+  logout: () =>
     request<any>('/auth/logout', {
       method: 'POST',
     }),
@@ -60,43 +60,106 @@ export const api = {
     const query = params ? '?' + new URLSearchParams(params as any).toString() : '';
     return request<any[]>('/rooms' + query);
   },
-  
+
   getRoom: (id: string) => request<any>(`/rooms/${id}`),
-  
+
   createRoom: (data: any) =>
     request<any>('/rooms', {
       method: 'POST',
       body: data,
     }),
-  
+
   updateRoom: (id: string, data: any) =>
     request<any>(`/rooms/${id}`, {
       method: 'PUT',
       body: data,
     }),
-  
+
   deleteRoom: (id: string) =>
     request<void>(`/rooms/${id}`, {
       method: 'DELETE',
     }),
 
+  getPendingRooms: () => request<any[]>('/rooms/pending'),
+
+  approveRoom: (id: string) =>
+    request<any>(`/rooms/${id}/approve`, {
+      method: 'PATCH',
+    }),
+
+  rejectRoom: (id: string) =>
+    request<any>(`/rooms/${id}/reject`, {
+      method: 'PATCH',
+    }),
+
+  // Notifications
+  getNotifications: () => request<any[]>('/notifications'),
+
+  markNotificationAsRead: (id: string) =>
+    request<any>(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    }),
+
+  deleteNotification: (id: string) =>
+    request<any>(`/notifications/${id}`, {
+      method: 'DELETE',
+    }),
+
   // Bookings
   getBookings: () => request<any[]>('/bookings'),
-  
+
   getBooking: (id: string) => request<any>(`/bookings/${id}`),
-  
+
   createBooking: (roomId: string, checkInDate: string, checkOutDate: string) =>
     request<any>('/bookings', {
       method: 'POST',
       body: { roomId, checkInDate, checkOutDate },
     }),
-  
+
   updateBookingStatus: (id: string, status: string) =>
     request<any>(`/bookings/${id}/status`, {
       method: 'PATCH',
       body: { status },
     }),
 
+  // Booking Requests
+  createBookingRequest: (data: { roomId: string; checkInDate: string; checkOutDate: string; message: string }) =>
+    request<any>('/booking-requests', {
+      method: 'POST',
+      body: data,
+    }),
+
+  getAllBookingRequests: () => request<any[]>('/booking-requests'),
+
+  getUserBookingRequests: () => request<any[]>('/booking-requests/my-requests'),
+
+  approveBookingRequest: (id: string) =>
+    request<any>(`/booking-requests/${id}/approve`, {
+      method: 'POST'
+    }),
+
+  rejectBookingRequest: (id: string) =>
+    request<any>(`/booking-requests/${id}/reject`, {
+      method: 'POST'
+    }),
+
   // Analytics
   getAnalytics: () => request<any>('/analytics'),
+
+  // Payment & Check-in
+  payBooking: (id: string, paymentMethod: string) =>
+    request<any>(`/bookings/${id}/pay`, {
+      method: 'POST',
+      body: { paymentMethod }
+    }),
+
+  checkIn: (id: string) =>
+    request<any>(`/bookings/${id}/check-in`, {
+      method: 'POST'
+    }),
+
+  checkOut: (id: string) =>
+    request<any>(`/bookings/${id}/check-out`, {
+      method: 'POST'
+    }),
 };

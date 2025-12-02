@@ -7,7 +7,8 @@ import { createAiChat } from "../services/geminiService"; // <-- CORRECT IMPORT
 // --- Import types ---
 export enum Role {
   ADMIN = "ADMIN",
-  USER = "USER",
+  WARDEN = "WARDEN",
+  GUEST = "GUEST",
 }
 
 export interface ChatMessage {
@@ -33,23 +34,78 @@ const AiAgentChat: React.FC<{ userRole: Role }> = ({ userRole }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const systemInstruction =
-      userRole === Role.ADMIN
-        ? "You are an expert administrative assistant for CampusStays. Help admins with booking approvals, generating reports on occupancy rates, and providing analytics on revenue. Keep responses concise and professional."
-        : "You are a friendly and helpful concierge for CampusStays. Help users find rooms, answer questions about amenities, and guide them through the booking process. Be welcoming and clear.";
+    let systemInstruction = '';
+    
+    if (userRole === Role.ADMIN) {
+      systemInstruction = `You are an expert administrative assistant for UniLodge, a campus stay management platform.
+
+Your role: Assist admins with full access to all UniLodge data and operations.
+
+Capabilities you should help with:
+- Managing dashboards with real-time data
+- Managing students, wardens, and all user accounts
+- Tracking and monitoring warden activity
+- Viewing centralized approval requests (room bookings, mess cards, extensions, check-ins/outs)
+- Approving or rejecting requests
+- Viewing full lists of wardens and guests
+- Accessing complete data on rooms, bookings, payments, maps, check-ins, and check-outs
+- Generating summaries and insights
+
+Respond concisely, clearly, and professionally. Provide actionable guidance for administrative tasks.`;
+    } else if (userRole === Role.WARDEN) {
+      systemInstruction = `You are an operational assistant for UniLodge wardens.
+
+Your role: Help wardens with operational oversight at campus accommodations.
+
+Capabilities you should help with:
+- Viewing and managing check-ins and check-outs for paid and approved rooms
+- Viewing student details relevant to room assignment and stay operations
+- Viewing mess card validity, payment status, and scan authorization
+- Verifying whether a student is allowed entry or stay
+- Accessing room maps and occupancy details
+- Identifying which students are approved by admin
+
+Provide operational responses only. If asked about admin-only features (analytics, approvals, user management), respond: "Your role does not have access to that information."
+
+Respond concisely and focus on operational tasks.`;
+    } else {
+      // GUEST role
+      systemInstruction = `You are a friendly and helpful concierge for UniLodge, assisting students with their campus stay.
+
+Your role: Help students (guests) manage their accommodation needs.
+
+Capabilities you should help with:
+- Viewing available rooms, room details, and room maps
+- Viewing check-in and check-out times
+- Submitting room booking requests
+- Purchasing mess cards online
+- Viewing mess card details, scan eligibility, and payment history
+- Viewing booking status, payment history, and stay information
+- Providing assistance with accommodation, bookings, and payments
+
+If asked about admin or warden features (approvals, check-in management, analytics), respond: "Your role does not have access to that information."
+
+Be welcoming, clear, and helpful. Guide users through the booking process and answer accommodation questions.`;
+    }
 
     // This now calls the REAL service from ../services/geminiService
     const chatInstance = createAiChat(systemInstruction);
     setChat(chatInstance);
 
+    let initialMessage = '';
+    if (userRole === Role.ADMIN) {
+      initialMessage = "Hello Admin. How can I assist with reports, approvals, or user management today?";
+    } else if (userRole === Role.WARDEN) {
+      initialMessage = "Hello Warden. How can I help with check-ins, check-outs, or room operations?";
+    } else {
+      initialMessage = "Welcome! How can I help you find the perfect room or manage your booking?";
+    }
+
     setMessages([
       {
         id: "initial",
         sender: "ai",
-        text:
-          userRole === Role.ADMIN
-            ? "Hello Admin. How can I assist with reports or approvals today?"
-            : "Welcome! How can I help you find the perfect room?",
+        text: initialMessage,
         isLoading: false,
       },
     ]);
@@ -102,14 +158,14 @@ const AiAgentChat: React.FC<{ userRole: Role }> = ({ userRole }) => {
           )
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gemini API error:", error);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMessageId
             ? {
                 ...msg,
-                text: "Sorry, I encountered an error. Please try again.",
+                text: error.message || "Sorry, I encountered an error. Please try again.",
                 isLoading: false,
               }
             : msg

@@ -7,6 +7,14 @@ export interface IBooking extends Document {
   checkOutDate: Date;
   status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
   totalPrice: number;
+  paymentStatus: 'unpaid' | 'paid' | 'refunded';
+  paymentDate?: Date;
+  paymentMethod?: string;
+  transactionId?: string;
+  checkInCompleted: boolean;
+  checkOutCompleted: boolean;
+  checkInTime?: Date;
+  checkOutTime?: Date;
   createdAt: Date;
 }
 
@@ -38,6 +46,34 @@ const BookingSchema = new Schema<IBooking>({
     type: Number,
     required: true,
     min: 0,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['unpaid', 'paid', 'refunded'],
+    default: 'unpaid',
+  },
+  paymentDate: {
+    type: Date,
+  },
+  paymentMethod: {
+    type: String,
+  },
+  transactionId: {
+    type: String,
+  },
+  checkInCompleted: {
+    type: Boolean,
+    default: false,
+  },
+  checkOutCompleted: {
+    type: Boolean,
+    default: false,
+  },
+  checkInTime: {
+    type: Date,
+  },
+  checkOutTime: {
+    type: Date,
   },
   createdAt: {
     type: Date,

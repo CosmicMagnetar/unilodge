@@ -10,6 +10,8 @@ export interface IRoom extends Document {
   isAvailable: boolean;
   description?: string;
   capacity: number;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  wardenId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -56,6 +58,16 @@ const RoomSchema = new Schema<IRoom>({
     type: Number,
     required: true,
     min: 1,
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+  },
+  wardenId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
   },
   createdAt: {
     type: Date,

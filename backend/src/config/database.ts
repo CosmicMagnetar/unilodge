@@ -9,14 +9,14 @@ dotenv.config();
 export async function connectDB() {
   try {
     const mongoUri = process.env.MONGODB_URI;
-    
+
     if (!mongoUri) {
       throw new Error('MONGODB_URI is not defined in .env');
     }
 
     await mongoose.connect(mongoUri);
     console.log('✅ MongoDB connected successfully');
-    
+
     // Seed initial data if database is empty
     await seedDatabase();
   } catch (error) {
@@ -27,6 +27,14 @@ export async function connectDB() {
 
 async function seedDatabase() {
   try {
+    // Only seed if explicitly enabled via environment variable
+    if (process.env.SEED_DATABASE !== 'true') {
+      console.log('ℹ️  Database seeding disabled. Set SEED_DATABASE=true in .env to enable.');
+      return;
+    }
+
+    console.log('🌱 Starting database seeding...');
+
     // Check if admin user exists
     const adminExists = await User.findOne({ email: 'admin@campus.edu' });
     if (!adminExists) {
@@ -61,7 +69,7 @@ async function seedDatabase() {
           roomNumber: '101',
           type: 'Single' as const,
           price: 50,
-          amenities: ['Wi-Fi', 'Desk', 'Shared Bathroom', 'AC'],
+          amenities: ['Wi-Fi', 'Desk', 'Private Bathroom'],
           rating: 4.5,
           imageUrl: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=800',
           isAvailable: true,
@@ -106,6 +114,8 @@ async function seedDatabase() {
       await Room.insertMany(rooms);
       console.log('✅ Seeded rooms');
     }
+
+    console.log('✅ Database seeding completed');
   } catch (error) {
     console.error('Error seeding database:', error);
   }
