@@ -303,7 +303,7 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
                                                             <Utensils className="text-blue-200" />
                                                             <h3 className="font-bold text-lg tracking-wide">MESS CARD</h3>
                                                         </div>
-                                                        <img src="/logo.png" alt="Logo" className="h-8 opacity-80" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                                        <img src="/images/UniLodge.png" alt="Logo" className="h-8 opacity-80" onError={(e) => e.currentTarget.style.display = 'none'} />
                                                     </div>
                                                     
                                                     <div className="flex items-center gap-4 mb-6">

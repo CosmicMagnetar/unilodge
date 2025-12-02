@@ -3,10 +3,8 @@ import React from 'react';
 // ICONS - Updated with new icons for the new UI
 export const Icons = {
   // --- NEW ICONS ---
-  building: (props: React.SVGProps<SVGSVGElement>) => ( // New Logo
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z" />
-    </svg>
+  building: (props: React.ImgHTMLAttributes<HTMLImageElement>) => ( // New Logo
+    <img src="/images/UniLodge.png" alt="UniLodge Logo" {...props} style={{ width: '24px', height: '24px', objectFit: 'contain', ...props.style }} />
   ),
   search: (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -29,10 +27,8 @@ export const Icons = {
     </svg>
   ),
   // --- OLD ICONS ---
-  logo: (props: React.SVGProps<SVGSVGElement>) => ( // Old logo, kept for other pages
-    <svg {...props} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M16.5 6h-9a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h7a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-7a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h9a2.5 2.5 0 002.5-2.5v-9A2.5 2.5 0 0016.5 6zM7.5 8a.5.5 0 01.5-.5h2a.5.5 0 010 1h-2a.5.5 0 01-.5-.5z" />
-    </svg>
+  logo: (props: React.ImgHTMLAttributes<HTMLImageElement>) => ( // Old logo, kept for other pages
+    <img src="/images/UniLodge.png" alt="UniLodge Logo" {...props} style={{ width: '24px', height: '24px', objectFit: 'contain', ...props.style }} />
   ),
   user: (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
