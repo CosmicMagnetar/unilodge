@@ -96,6 +96,16 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
         { imgSrc: '/images/collections/near-campus.png', title: 'Near Campus', subtitle: 'Average Rent: $1100/month' },
     ];
 
+    const handleRoomBook = (roomId: string) => {
+        const room = rooms.find(r => r.id === roomId);
+        setRequestForm(prev => ({ 
+            ...prev, 
+            roomId,
+            university: (room as any)?.university || prev.university 
+        }));
+        setShowRequestModal(true);
+    };
+
     const handleRequestSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -535,7 +545,7 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
                             
                             <div className="grid md:grid-cols-2 gap-6">
                                 {filteredRooms.map(room => (
-                                    <RoomCard key={room.id} room={room} onBook={onBook} />
+                                <RoomCard key={room.id} room={room} onBook={handleRoomBook} />
                                 ))}
                             </div>
                             

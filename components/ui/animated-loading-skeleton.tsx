@@ -130,8 +130,8 @@ const AnimatedLoadingSkeleton = () => {
                 {/* Branding Header */}
                 <div className="flex flex-col items-center justify-center mb-8 z-20 relative">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="bg-blue-600 p-2 rounded-lg shadow-lg">
-                            <Shield className="w-8 h-8 text-white" fill="currentColor" />
+                        <div className="bg-white p-2 rounded-lg shadow-lg">
+                            <img src="/images/UniLodge.png" alt="UniLodge Logo" className="w-8 h-8 object-contain" />
                         </div>
                         <h1 className="text-3xl font-bold text-blue-900 tracking-tight">UniLodge</h1>
                     </div>
@@ -155,9 +155,10 @@ const AnimatedLoadingSkeleton = () => {
                         variants={glowVariants}
                         animate="animate"
                     >
-                        <Shield
-                            className="w-6 h-6 text-blue-600"
-                            fill="currentColor"
+                        <img 
+                            src="/images/UniLodge.png" 
+                            alt="UniLodge Logo" 
+                            className="w-6 h-6 object-contain"
                         />
                     </motion.div>
                 </motion.div>

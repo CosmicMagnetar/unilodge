@@ -46,7 +46,7 @@ const Header = ({ user, onNavigate, onLogout }: HeaderProps) => {
           
           {/* Logo */}
           <div className="flex items-center cursor-pointer group" onClick={() => onNavigate('home')}>
-            <div className="bg-gradient-to-r from-blue-900 to-blue-600 p-2.5 rounded-xl shadow-md group-hover:shadow-xl transition-all group-hover:scale-105">
+            <div className="bg-white p-2.5 rounded-xl shadow-md group-hover:shadow-xl transition-all group-hover:scale-105">
               <img src="/images/UniLodge.png" alt="UniLodge Logo" className="h-6 w-6 object-contain" />
             </div>
             <div className="ml-3">

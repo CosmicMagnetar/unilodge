@@ -25,7 +25,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ minDuration = 2500
           <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
           <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           <div className="absolute inset-3 flex items-center justify-center">
-            <span className="text-2xl font-bold text-blue-600
+            <img src="/images/UniLodge.png" alt="Loading" className="w-10 h-10 object-contain" />
           </div>
         </div>
         
