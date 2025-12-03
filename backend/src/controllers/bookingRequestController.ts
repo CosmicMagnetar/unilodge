@@ -18,16 +18,8 @@ export const createBookingRequest = async (req: AuthRequest, res: Response) => {
         // Check if room exists
         let room = await Room.findById(roomId);
 
-        // Allow dummy IDs for testing
-        const DUMMY_IDS = ['60d5ecb8b487343568912341', '60d5ecb8b487343568912342', '60d5ecb8b487343568912343'];
-
-        if (!room && !DUMMY_IDS.includes(roomId)) {
+        if (!room) {
             return res.status(404).json({ error: 'Room not found' });
-        }
-
-        // Mock room for dummy IDs
-        if (!room && DUMMY_IDS.includes(roomId)) {
-            room = { price: 500 } as any;
         }
 
         // Calculate total price
@@ -141,10 +133,9 @@ export const approveBookingRequest = async (req: AuthRequest, res: Response) => 
         // Manually find the room to get price
         let room = await Room.findById(bookingRequest.roomId);
 
-        // Handle dummy rooms or missing rooms
+        // Handle missing rooms
         if (!room) {
-            console.log('Using mock room for approval (dummy room or missing)');
-            room = { price: 500 } as any; // Mock price
+            return res.status(404).json({ error: 'Room not found' });
         }
 
         // Ensure dates are valid Date objects
@@ -209,12 +200,15 @@ export const rejectBookingRequest = async (req: AuthRequest, res: Response) => {
             7 // Expires in 7 days
         );
 
-        // Delete the booking request from database
-        await BookingRequest.findByIdAndDelete(id);
+        // Update request status to rejected
+        bookingRequest.status = 'rejected';
+        bookingRequest.respondedAt = new Date();
+        bookingRequest.respondedBy = adminId as any;
+        await bookingRequest.save();
 
         res.json({
             message: 'Booking request rejected and notification sent to user',
-            deleted: true
+            request: bookingRequest
         });
     } catch (error) {
         console.error('Reject booking request error:', error);

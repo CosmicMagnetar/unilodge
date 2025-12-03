@@ -68,6 +68,7 @@ const AppContent = () => {
           isAvailable: r.isAvailable,
           description: r.description,
           capacity: r.capacity,
+          university: r.university,
         }))
       );
     } catch (err: any) {
@@ -92,6 +93,7 @@ const AppContent = () => {
           status: b.status,
           totalPrice: b.totalPrice,
           room: b.room || b.roomId,
+          paymentStatus: b.paymentStatus,
         }))
       );
     } catch (err: any) {

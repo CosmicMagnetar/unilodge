@@ -19,7 +19,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
     const [wardens, setWardens] = useState<User[]>([]);
     const [pendingRooms, setPendingRooms] = useState<Room[]>([]);
     const [bookingRequests, setBookingRequests] = useState<any[]>([]);
+    const [allBookings, setAllBookings] = useState<Booking[]>([]);
     const [activeTab, setActiveTab] = useState<'wardens' | 'rooms' | 'payments' | 'requests'>('requests');
+    const [requestFilter, setRequestFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'pending'>('all');
 
     useEffect(() => {
         api.getAnalytics()
@@ -50,7 +53,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
                 .then((data: any[]) => setBookingRequests(data))
                 .catch((err: any) => console.error('Failed to load booking requests:', err));
         }
-    }, [bookings]);
+
+        // Fetch bookings directly to ensure admin sees all
+        api.getBookings()
+            .then((data: Booking[]) => setAllBookings(data))
+            .catch((err: any) => console.error('Failed to load bookings:', err));
+    }, []); // Run once on mount
+
+    // Use local bookings state if available, otherwise fall back to props (though props might be stale or user-specific if App.tsx logic is flawed)
+    // Actually, let's just use the local state for the dashboard to be safe.
+    const displayBookings = allBookings.length > 0 ? allBookings : bookings;
 
     const handleApproveRoom = async (roomId: string) => {
         try {
@@ -136,7 +148,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
     };
 
     const getPaymentStatus = (booking: Booking) => {
-        return booking.paymentStatus || 'pending';
+        const status = booking.paymentStatus || 'pending';
+        return (status as string) === 'unpaid' ? 'pending' : status;
     };
 
     const getPaymentStatusColor = (status: string) => {
@@ -211,22 +224,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
                                         <Users size={18} />
                                         Wardens
                                     </button>
-                                    <button
-                                        onClick={() => setActiveTab('rooms')}
-                                        className={`flex-1 py-4 px-6 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
-                                            activeTab === 'rooms'
-                                                ? 'border-blue-500 text-blue-600 bg-blue-50/50'
-                                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        <Home size={18} />
-                                        Approvals
-                                        {pendingRooms.length > 0 && (
-                                            <Badge className="ml-1 bg-red-100 text-red-600 border-red-200 px-1.5 py-0.5 text-[10px]">
-                                                {pendingRooms.length}
-                                            </Badge>
-                                        )}
-                                    </button>
+                                    {/* Approvals tab removed as requested */}
                                     <button
                                         onClick={() => setActiveTab('payments')}
                                         className={`flex-1 py-4 px-6 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
@@ -258,10 +256,82 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
                             </div>
 
                             <div className="p-6">
+                                {/* Wardens Tab */}
+                                {activeTab === 'wardens' && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h2 className="text-lg font-bold text-slate-900">Manage Wardens</h2>
+                                            <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+                                                <Users size={18} />
+                                                Add Warden
+                                            </Button>
+                                        </div>
+                                        {wardens.length === 0 ? (
+                                            <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                                                <Users className="mx-auto h-12 w-12 text-slate-400 mb-3" />
+                                                <p className="text-slate-900 font-medium">No wardens found</p>
+                                                <p className="text-slate-500 text-sm">Add a warden to manage properties.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                                <table className="min-w-full divide-y divide-slate-200">
+                                                    <thead className="bg-slate-50">
+                                                        <tr>
+                                                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Name</th>
+                                                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
+                                                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
+                                                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Joined</th>
+                                                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-white divide-y divide-slate-200">
+                                                        {wardens.map((warden) => (
+                                                            <tr key={warden.id} className="hover:bg-slate-50 transition-colors">
+                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                    <div className="text-sm font-medium text-slate-900">{warden.name}</div>
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                                                    {warden.email}
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                                                                        {warden.role}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                                    {new Date(warden.createdAt).toLocaleDateString()}
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                                    <button className="text-slate-400 hover:text-blue-600 transition-colors mr-3">
+                                                                        <Edit size={18} />
+                                                                    </button>
+                                                                    <button className="text-slate-400 hover:text-red-600 transition-colors">
+                                                                        <Trash2 size={18} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 {/* Payments Tab */}
                                 {activeTab === 'payments' && (
                                     <div>
-                                        <h2 className="text-lg font-bold text-slate-900 mb-6">Recent Transactions & Check-ins</h2>
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h2 className="text-lg font-bold text-slate-900">Recent Transactions & Check-ins</h2>
+                                            <select
+                                                value={paymentFilter}
+                                                onChange={(e) => setPaymentFilter(e.target.value as any)}
+                                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                            >
+                                                <option value="all">All Transactions</option>
+                                                <option value="paid">Paid</option>
+                                                <option value="pending">Pending</option>
+                                            </select>
+                                        </div>
                                         <div className="overflow-x-auto rounded-lg border border-slate-200">
                                             <table className="min-w-full divide-y divide-slate-200">
                                                 <thead className="bg-slate-50">
@@ -274,7 +344,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-slate-200">
-                                                    {bookings.map((booking) => {
+                                                    {displayBookings.filter(b => {
+                                                        if (paymentFilter === 'all') return true;
+                                                        const status = getPaymentStatus(b);
+                                                        return status === paymentFilter;
+                                                    }).map((booking) => {
                                                         const status = getPaymentStatus(booking);
                                                         return (
                                                             <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
@@ -327,16 +401,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
                                 {/* Requests Tab */}
                                 {activeTab === 'requests' && (
                                     <div>
-                                        <h2 className="text-lg font-bold text-slate-900 mb-6">Booking Requests</h2>
-                                        {bookingRequests.filter(r => r.status === 'pending').length === 0 ? (
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h2 className="text-lg font-bold text-slate-900">Booking Requests</h2>
+                                            <select
+                                                value={requestFilter}
+                                                onChange={(e) => setRequestFilter(e.target.value as any)}
+                                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                            >
+                                                <option value="pending">Pending Requests</option>
+                                                <option value="approved">Approved Requests</option>
+                                                <option value="rejected">Rejected Requests</option>
+                                                <option value="all">All Requests</option>
+                                            </select>
+                                        </div>
+                                        {bookingRequests.filter(r => requestFilter === 'all' ? true : r.status === requestFilter).length === 0 ? (
                                             <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-300">
                                                 <FileText className="mx-auto h-12 w-12 text-slate-400 mb-3" />
-                                                <p className="text-slate-900 font-medium">No new requests</p>
-                                                <p className="text-slate-500 text-sm">There are no pending booking requests to review.</p>
+                                                <p className="text-slate-900 font-medium">No requests found</p>
+                                                <p className="text-slate-500 text-sm">There are no {requestFilter !== 'all' ? requestFilter : ''} booking requests to review.</p>
                                             </div>
                                         ) : (
                                             <div className="space-y-4">
-                                                {bookingRequests.filter(r => r.status === 'pending').map((request) => (
+                                                {bookingRequests.filter(r => requestFilter === 'all' ? true : r.status === requestFilter).map((request) => (
                                                     <div key={request.id} className="p-4 rounded-lg border border-slate-200 hover:border-blue-200 hover:shadow-md transition-all bg-white">
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex-1">

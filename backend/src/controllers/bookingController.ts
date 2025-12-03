@@ -31,7 +31,7 @@ export const getBookings = async (req: AuthRequest, res: Response) => {
       totalPrice: b.totalPrice,
       createdAt: b.createdAt,
       room: b.roomId,
-      paymentStatus: b.paymentStatus || 'unpaid',
+      paymentStatus: b.paymentStatus || 'pending',
       paymentDate: b.paymentDate,
       paymentMethod: b.paymentMethod,
       transactionId: b.transactionId,
@@ -241,7 +241,8 @@ export const processPayment = async (req: AuthRequest, res: Response) => {
     booking.transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     await booking.save();
-    await booking.populate('roomId');
+    // Removed populate as it's not needed for response and can cause issues with dummy rooms
+    // await booking.populate('roomId');
 
     res.json({
       message: 'Payment processed successfully',

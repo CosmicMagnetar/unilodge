@@ -140,6 +140,10 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
         }
     };
 
+    const [sortBy, setSortBy] = useState('');
+
+    // ... (rest of state)
+
     // Filter rooms based on selected criteria
     const filteredRooms = rooms.filter(room => {
         if (!room.isAvailable) return false;
@@ -155,6 +159,12 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
             if (activeFilter === 'Near Campus' && !room.nearCampus) return false;
         }
         return true;
+    }).sort((a, b) => {
+        if (sortBy === 'price_asc') return a.price - b.price;
+        if (sortBy === 'price_desc') return b.price - a.price;
+        if (sortBy === 'uni_asc') return a.university.localeCompare(b.university);
+        if (sortBy === 'uni_desc') return b.university.localeCompare(a.university);
+        return 0;
     });
 
     return (
@@ -486,6 +496,21 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
                                 </div>
 
                                 <div>
+                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-3">Sort By</label>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    >
+                                        <option value="">Recommended</option>
+                                        <option value="price_asc">Price: Low to High</option>
+                                        <option value="price_desc">Price: High to Low</option>
+                                        <option value="uni_asc">University: A-Z</option>
+                                        <option value="uni_desc">University: Z-A</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
                                     <label className="block text-xs font-bold uppercase text-slate-500 mb-3">Price Range</label>
                                     <select
                                         value={priceRange}
@@ -506,6 +531,7 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
                                         setSelectedUniversity('');
                                         setRoomType('');
                                         setPriceRange('');
+                                        setSortBy('');
                                         setActiveFilter('All Rooms');
                                     }}
                                     className="w-full"
@@ -624,11 +650,7 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
                                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         >
                                             <option value="">Select Room</option>
-                                            {(rooms.length > 0 ? rooms : [
-                                                { id: '60d5ecb8b487343568912341', roomNumber: '101 (Demo)', type: 'Single', price: 500 },
-                                                { id: '60d5ecb8b487343568912342', roomNumber: '102 (Demo)', type: 'Double', price: 800 },
-                                                { id: '60d5ecb8b487343568912343', roomNumber: '201 (Demo)', type: 'Suite', price: 1200 }
-                                            ]).map((room: any) => (
+                                            {rooms.map((room: any) => (
                                                 <option key={room.id} value={room.id}>
                                                     {room.roomNumber} - {room.type} (${room.price})
                                                 </option>

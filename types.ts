@@ -21,16 +21,18 @@ export interface Room {
   rating: number;
   imageUrl: string;
   isAvailable: boolean;
+  university: string;
 }
 
 export interface Booking {
-  [x: string]: string;
+  [x: string]: string | Room | undefined;
   id: string;
   roomId: string;
   userId: string;
   checkInDate: string;
   checkOutDate: string;
   status: 'Confirmed' | 'Pending' | 'Cancelled';
+  paymentStatus?: 'paid' | 'pending' | 'failed';
   room?: Room; // Optional, for easier display
 }
 

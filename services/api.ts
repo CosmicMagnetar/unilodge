@@ -148,18 +148,18 @@ export const api = {
 
   // Payment & Check-in
   payBooking: (id: string, paymentMethod: string) =>
-    request<any>(`/bookings/${id}/pay`, {
+    request<any>(`/bookings/${id}/payment`, {
       method: 'POST',
       body: { paymentMethod }
     }),
 
   checkIn: (id: string) =>
-    request<any>(`/bookings/${id}/check-in`, {
+    request<any>(`/bookings/${id}/checkin`, {
       method: 'POST'
     }),
 
   checkOut: (id: string) =>
-    request<any>(`/bookings/${id}/check-out`, {
+    request<any>(`/bookings/${id}/checkout`, {
       method: 'POST'
     }),
 };
