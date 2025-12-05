@@ -56,7 +56,7 @@ export const api = {
     }),
 
   // Rooms
-  getRooms: (params?: { type?: string; minPrice?: number; maxPrice?: number; available?: boolean }) => {
+  getRooms: (params?: { type?: string; minPrice?: number; maxPrice?: number; available?: boolean; search?: string }) => {
     const query = params ? '?' + new URLSearchParams(params as any).toString() : '';
     return request<any[]>('/rooms' + query);
   },
@@ -106,7 +106,10 @@ export const api = {
     }),
 
   // Bookings
-  getBookings: () => request<any[]>('/bookings'),
+  getBookings: (params?: { paymentStatus?: string }) => {
+    const query = params ? '?' + new URLSearchParams(params as any).toString() : '';
+    return request<any[]>('/bookings' + query);
+  },
 
   getBooking: (id: string) => request<any>(`/bookings/${id}`),
 
@@ -129,7 +132,10 @@ export const api = {
       body: data,
     }),
 
-  getAllBookingRequests: () => request<any[]>('/booking-requests'),
+  getAllBookingRequests: (params?: { status?: string }) => {
+    const query = params ? '?' + new URLSearchParams(params as any).toString() : '';
+    return request<any[]>('/booking-requests' + query);
+  },
 
   getUserBookingRequests: () => request<any[]>('/booking-requests/my-requests'),
 

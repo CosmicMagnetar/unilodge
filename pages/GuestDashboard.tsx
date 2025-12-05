@@ -50,6 +50,9 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
     const [myBookings, setMyBookings] = useState<Booking[]>([]);
     const [myRequests, setMyRequests] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Room[]>(rooms);
+    const [isSearching, setIsSearching] = useState(false);
     const [requestForm, setRequestForm] = useState({
         roomId: '',
         university: '',
@@ -61,7 +64,8 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
 
     React.useEffect(() => {
         loadData();
-    }, []);
+        setSearchResults(rooms);
+    }, [rooms]);
 
     const loadData = async () => {
         try {
@@ -75,6 +79,27 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
             console.error('Failed to load data:', err);
         }
     };
+
+    // Debounced search function
+    React.useEffect(() => {
+        const delaySearch = setTimeout(async () => {
+            if (searchQuery.trim()) {
+                setIsSearching(true);
+                try {
+                    const results = await api.getRooms({ search: searchQuery });
+                    setSearchResults(results);
+                } catch (err) {
+                    console.error('Search failed:', err);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults(rooms);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(delaySearch);
+    }, [searchQuery, rooms]);
 
     const handlePay = async (bookingId: string) => {
         try {
@@ -144,8 +169,9 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
 
     // ... (rest of state)
 
-    // Filter rooms based on selected criteria
-    const filteredRooms = rooms.filter(room => {
+    // Filter rooms based on selected criteria (use search results if searching)
+    const baseRooms = searchQuery.trim() ? searchResults : rooms;
+    const filteredRooms = baseRooms.filter(room => {
         if (!room.isAvailable) return false;
         if (selectedUniversity && room.university !== selectedUniversity) return false;
         if (roomType && room.type !== roomType) return false;
@@ -544,6 +570,33 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ user, rooms, onB
 
                     {/* Main Content */}
                     <div className="w-full md:w-3/4">
+                        {/* Search Bar */}
+                        <div className="mb-6">
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by room number, type, university, or description..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                                />
+                                {isSearching && (
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent" />
+                                    </div>
+                                )}
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Quick Filter Tabs */}
                         <div className="flex overflow-x-auto pb-4 mb-6 gap-2 no-scrollbar">
                             {filters.map(filter => (

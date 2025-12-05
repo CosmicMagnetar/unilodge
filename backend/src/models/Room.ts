@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRoom extends Document {
   roomNumber: string;
-  type: 'Single' | 'Double' | 'Suite';
+  type: 'Single' | 'Double' | 'Suite' | 'Studio';
   price: number;
   amenities: string[];
   rating: number;
@@ -25,7 +25,7 @@ const RoomSchema = new Schema<IRoom>({
   },
   type: {
     type: String,
-    enum: ['Single', 'Double', 'Suite'],
+    enum: ['Single', 'Double', 'Suite', 'Studio'],
     required: true,
   },
   price: {

@@ -6,11 +6,17 @@ import { AuthRequest } from '../types';
 
 export const getBookings = async (req: AuthRequest, res: Response) => {
   try {
+    const { paymentStatus } = req.query;
     const query: any = {};
 
     // If not admin, only show user's bookings
     if (req.user?.role !== 'ADMIN') {
       query.userId = req.user?.id;
+    }
+
+    // Add payment status filter if provided
+    if (paymentStatus && paymentStatus !== 'all') {
+      query.paymentStatus = paymentStatus;
     }
 
     const bookings = await Booking.find(query)

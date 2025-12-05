@@ -47,18 +47,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
             setPendingRooms([]);
         }
 
-        // Fetch booking requests
+        // Fetch booking requests with filter
         if ((api as any).getAllBookingRequests) {
-            (api as any).getAllBookingRequests()
+            const params = requestFilter !== 'all' ? { status: requestFilter } : {};
+            (api as any).getAllBookingRequests(params)
                 .then((data: any[]) => setBookingRequests(data))
                 .catch((err: any) => console.error('Failed to load booking requests:', err));
         }
 
-        // Fetch bookings directly to ensure admin sees all
-        api.getBookings()
+        // Fetch bookings with payment filter
+        const params = paymentFilter !== 'all' ? { paymentStatus: paymentFilter } : {};
+        api.getBookings(params)
             .then((data: Booking[]) => setAllBookings(data))
             .catch((err: any) => console.error('Failed to load bookings:', err));
-    }, []); // Run once on mount
+    }, [paymentFilter, requestFilter]); // Re-fetch when filters change
 
     // Use local bookings state if available, otherwise fall back to props (though props might be stale or user-specific if App.tsx logic is flawed)
     // Actually, let's just use the local state for the dashboard to be safe.
@@ -344,11 +346,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, rooms, boo
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-slate-200">
-                                                    {displayBookings.filter(b => {
-                                                        if (paymentFilter === 'all') return true;
-                                                        const status = getPaymentStatus(b);
-                                                        return status === paymentFilter;
-                                                    }).map((booking) => {
+                                                    {displayBookings.map((booking) => {
                                                         const status = getPaymentStatus(booking);
                                                         return (
                                                             <tr key={booking.id} className="hover:bg-slate-50 transition-colors">

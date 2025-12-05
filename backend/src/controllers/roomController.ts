@@ -4,9 +4,20 @@ import { createNotification } from './notificationController';
 
 export const getRooms = async (req: Request, res: Response) => {
   try {
-    const { type, minPrice, maxPrice, available } = req.query;
+    const { type, minPrice, maxPrice, available, search } = req.query;
 
     const query: any = {};
+
+    // Search functionality - search across multiple fields
+    if (search && typeof search === 'string') {
+      const searchRegex = new RegExp(search, 'i'); // Case-insensitive search
+      query.$or = [
+        { roomNumber: searchRegex },
+        { type: searchRegex },
+        { university: searchRegex },
+        { description: searchRegex }
+      ];
+    }
 
     if (type) {
       query.type = type;
