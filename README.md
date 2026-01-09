@@ -1,4 +1,4 @@
-# CampusStays – AI-Powered Booking Platform for College Accommodations
+# UniLodge – AI-Powered Booking Platform for College Accommodations
 
 ## 1. Overview
 
